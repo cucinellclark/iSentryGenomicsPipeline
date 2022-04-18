@@ -13,6 +13,20 @@ sys.path.insert(0,"scripts")
 # - spades
 # - diamond
 
+###NOTE: exection scripts in path
+# - export PATH=/path/to/scripts/:$PATH 
+
+program_dict = {
+    'trimgalore' : True,
+    'mash' : True,
+    'kraken' : True,
+    'spades' : True,
+    'checkm' : True,
+    'maxbin' : True,
+    'diamond' : True,
+    'patho_profile' : True
+}
+
 def run_trimgalore(path_dict,read_list,threads):
     trim_cmd = ["trim_galore","--cores",threads,"--output_dir",path_dict["reads_output"]]
     paired_flag = False
@@ -22,7 +36,7 @@ def run_trimgalore(path_dict,read_list,threads):
     else:
         trim_cmd = trim_cmd + [read_list[0]]
     try:
-        if False:
+        if program_dict['trimgalore']:
             print(" ".join(trim_cmd))
             subprocess.check_call(trim_cmd)
         sample_files = []
@@ -45,13 +59,13 @@ def run_trimgalore(path_dict,read_list,threads):
 
 def run_mash(genome_type,seq_file,mash_prefix,threads):
     mash_database = "/project/biocomplexity/isentry/ref_data/mash/patric_all.msh"
-    if False:
+    if program_dict['mash']:
         if genome_type == "isolate": #mash dist
-            mash_cmd = ["python","scripts/Run_MashDist.py","-t",threads,"-d",mash_database,"-f",seq_file,"-s",mash_prefix]
+            mash_cmd = ["python","Run_MashDist.py","-t",threads,"-d",mash_database,"-f",seq_file,"-s",mash_prefix]
             print(" ".join(mash_cmd))
             subprocess.check_call(mash_cmd)
         elif genome_type == "metagenomic": #mash screen
-            mash_cmd = ["python","scripts/Run_MashScreen.py","-t",threads,"-d",mash_database,"-f",seq_file,"-s",mash_prefix]
+            mash_cmd = ["python","Run_MashScreen.py","-t",threads,"-d",mash_database,"-f",seq_file,"-s",mash_prefix]
             print(" ".join(mash_cmd))
             subprocess.check_call(mash_cmd)
         else:
@@ -60,16 +74,16 @@ def run_mash(genome_type,seq_file,mash_prefix,threads):
 def run_kraken(seq_file,kraken_reads_prefix,threads):
     kraken_read_log_stdout = kraken_reads_prefix+".stdout"
     kraken_read_log_stderr = kraken_reads_prefix+".stderr"
-    if False:
+    if program_dict['kraken']:
         with open(kraken_read_log_stdout,"w") as klo, open(kraken_read_log_stderr,"w") as kle:
-            kraken_cmd = ["python","scripts/RunKraken.py","-t",threads,"-p",kraken_reads_prefix,"-r",seq_file]
+            kraken_cmd = ["python","RunKraken.py","-t",threads,"-p",kraken_reads_prefix,"-r",seq_file]
             print(" ".join(kraken_cmd))
             subprocess.check_call(kraken_cmd,stdout=klo,stderr=kle)
 
 def run_spades(genome_type,path_dict,threads):
     try:
         print("Running SPAdes")
-        spades_cmd = ["python","scripts/RunSpades.py","-t",threads]
+        spades_cmd = ["python","RunSpades.py","-t",threads]
         if "read2" in path_dict:
             spades_cmd+=["-r",path_dict["read1"]+","+path_dict["read2"]]
         else:
@@ -80,7 +94,7 @@ def run_spades(genome_type,path_dict,threads):
             spades_cmd+=["-m"]
         spades_stdout = os.path.join(path_dict["output_dir"],"spades.stdout")
         spades_stderr = os.path.join(path_dict["output_dir"],"spades.stderr")
-        if False:
+        if program_dict['spades']:
             print(" ".join(spades_cmd))
             with open(spades_stdout,"w") as so, open(spades_stderr,"w") as se:
                 subprocess.check_call(spades_cmd,stdout=so,stderr=se)
@@ -95,16 +109,16 @@ def run_spades(genome_type,path_dict,threads):
 
 def run_checkm(contigs_dir,output_file,output_dir,threads,suffix):
     checkm_cmd = ["checkm","taxonomy_wf","-t",threads,"-f",output_file,"-x",suffix,"--individual_markers","domain","Bacteria",contigs_dir,output_dir]
-    if False:
+    if program_dict['checkm']:
         print(" ".join(checkm_cmd))
         subprocess.check_call(checkm_cmd)
 
 def run_maxbin(path_dict,contig_file,prefix,threads):
-    maxbin_cmd = ["python","scripts/Run_Maxbin.py","-r1",path_dict["read1"]]
+    maxbin_cmd = ["python","Run_Maxbin.py","-r1",path_dict["read1"]]
     if "read2" in path_dict:
         maxbin_cmd+=["-r2",path_dict["read2"]]
     maxbin_cmd+=["-c",contig_file,"-p",prefix,"-t",threads]
-    if False:
+    if program_dict['maxbin']:
         print(" ".join(maxbin_cmd))
         subprocess.check_call(maxbin_cmd)
     path_dict["bin_list"] = [] 
@@ -114,16 +128,16 @@ def run_maxbin(path_dict,contig_file,prefix,threads):
 def run_diamond(seq_file,prefix,threads):
     #diamond against vfdb
     vfdbDB="/project/biocomplexity/isentry/ref_data/vfdb/VFDB_setB_pro.dmnd"
-    blast_cmd = ["scripts/Run_Diamond.py","-t",threads,"-f",seq_file,"-d",vfdbDB,"-p",prefix]
-    if False:
+    blast_cmd = ["Run_Diamond.py","-t",threads,"-f",seq_file,"-d",vfdbDB,"-p",prefix]
+    if program_dict['diamond']:
         print(" ".join(blast_cmd))
         subprocess.check_call(blast_cmd)
     #get blast results file
 
 def run_pathogenicity_profile(blast_list,prefix):
     #run patho scoring script
-    #python scripts/scoreGenomeByVfdbLogodds.py testing_paired_meta/spades_output/SRR17068071_1_val_1_contigs_pp.diamond.out
-    patho_cmd = ["python","scripts/scoreGenomeByVfdbLogodds.py"] + blast_list
+    #python scoreGenomeByVfdbLogodds.py testing_paired_meta/spades_output/SRR17068071_1_val_1_contigs_pp.diamond.out
+    patho_cmd = ["python","scoreGenomeByVfdbLogodds.py"] + blast_list
     patho_stdout = prefix+"_patho_profile.stdout"
     patho_stderr = prefix+"_patho_profile.stderr"
     with open(patho_stdout,"w") as stdout,open(patho_stderr,"w") as stderr:
